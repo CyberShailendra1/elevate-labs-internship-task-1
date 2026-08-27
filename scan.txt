@@ -1,0 +1,10 @@
+# Nmap 7.99 scan initiated Thu Aug 27 16:33:47 2026 as: /usr/lib/nmap/nmap --privileged -sV -p 1-1000 -sS -oN scan.txt testaspnet.vulnweb.com
+Nmap scan report for testaspnet.vulnweb.com (44.238.29.244)
+Host is up (0.017s latency).
+Other addresses for testaspnet.vulnweb.com (not scanned): 64:ff9b::2cee:1df4
+rDNS record for 44.238.29.244: ec2-44-238-29-244.us-west-2.compute.amazonaws.com
+All 1000 scanned ports on testaspnet.vulnweb.com (44.238.29.244) are in ignored states.
+Not shown: 1000 filtered tcp ports (no-response)
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Thu Aug 27 16:34:39 2026 -- 1 IP address (1 host up) scanned in 52.17 seconds
