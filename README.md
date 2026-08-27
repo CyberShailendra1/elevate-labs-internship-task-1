@@ -22,12 +22,15 @@ Discover open ports on devices in the local network (VMWare) to understand netwo
 ip addr
 ip route
 ```
+![Local IP address](screenshort/ip-addr.png)
+![Routing table](screenshort/ip-route.png)
 Confirmed local IP `192.168.59.128/24` and default gateway `192.168.59.2`.
 
 ### 2. Host discovery (ping scan)
 ```
 sudo nmap -sn 192.168.59.128/24
 ```
+![Host discovery scan](screenshort/nmap-sn.png)
 **Output:**
 ```
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:06 +0530
@@ -50,6 +53,7 @@ Found 4 live hosts: `.1`, `.2`, `.128`, `.254`.
 ```
 sudo nmap -sS 192.168.59.128/24
 ```
+![TCP SYN scan](screenshort/nmap-sS.png)
 **Output:**
 ```
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:07 +0530
@@ -85,6 +89,7 @@ Result: only `192.168.59.2` had an open port — **53/tcp (domain)**. Rest were 
 ```
 sudo nmap -sV -sS 192.168.59.128/24
 ```
+![Service and version detection scan](screenshort/nmap-sV-sS.png)
 **Output:**
 ```
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:11/16:13 +0530
@@ -121,6 +126,7 @@ Identified service on port 53 as `dnsmasq 2.51`.
 ```
 sudo nmap -p 1-1000 192.168.59.128/24 -T3
 ```
+![Targeted port range scan](screenshort/nmap-p1-1000-T4.png)
 **Output:**
 ```
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:29 +0530
@@ -149,6 +155,7 @@ Confirmed same results with a faster timing template.
 ```
 nmap -sS 192.168.59.128/24 -oN scan.txt
 ```
+![Scan saved to file](screenshort/nmap-sS-oN.png)
 **Output:**
 ```
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:31 +0530
@@ -176,6 +183,7 @@ MAC Address: 00:50:56:FB:9B:54 (VMware)
 ```
 nmap -sV -p 1-1000 -sS -oN scan.txt testaspnet.vulnweb.com
 ```
+![External target scan](screenshort/nmap-sV.png)
 **Output (`scan.txt`):**
 ```
 # Nmap 7.99 scan  initiated Thu Aug 27 16:33:47 2026 as: /usr/lib/nmap/nmap -sV -p 1-1000 -sS -oN  scan.txt testaspnet.vulnweb.com
@@ -208,5 +216,5 @@ All 1000 scanned ports were  filtered (no response) — host likely firewalled a
 
 ## Files in this Repo
 - `scan.txt` — raw Nmap output
-- `screenshots/` — terminal screenshots of each scan step
+- `screenshort/` — terminal screenshots of each scan step
 - `README.md` — this file
