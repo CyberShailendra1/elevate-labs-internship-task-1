@@ -19,10 +19,26 @@ Getting a bug bounty report accepted is satisfying. Getting **two CVEs confirmed
 
 Both projects are popular open-source PHP/MySQL applications commonly used by students and small institutions, which also makes them widely deployed and under-audited:
 
-| # | Project               | Vulnerability               | VulDB Entry               | CVE ID               |
-|---|---------              |--------------              -|------------              -|-------              -|
-| 1 | Online Attendance System (PHP/MySQL) v1.0 | Cross-Site Scripting | VDB-399379 | CVE-2026-86226 |
-| 2 | Online Examination System Project (PHP/MySQL) v1.0 | Cross-Site Scripting | VDB-399395 | CVE-2026-86238 |
+## Project 
+
+           1.Online Attendance System (PHP/MySQL) v1.0
+
+           2. Online Examination System Project (PHP/MySQL) v1.0
+## Vulnerability 
+
+            1.Cross-Site Scripting
+            
+            2.Cross-Site Scripting
+## VulDB Entry 
+
+            1.VDB-399379
+
+            2.VDB-399395
+## CVE ID
+
+            1.CVE-2026-86226
+
+            2.CVE-2026-86238
 
 ## Why These Targets
 
