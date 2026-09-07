@@ -1,6 +1,4 @@
- # Task 1: Scan Local Network for Open Ports
-
-**Internship:** Cyber Security Internship — Elevate Labs (MSME, Govt. of India)
+### From Recon to CVE: How I Found and Reported Two XSS Vulnerabilities in ProjectWorlds PHP Projects
 
 **Author:** Shailendra Mourya (cybershailendra)
 
@@ -11,232 +9,79 @@
 **OpenBugBounty:** https://www.openbugbounty.org/researchers/cybershailendra/
 
 
-## Objective
-Discover open ports on devices in the local network (VMWare) to understand network exposure using Nmap.
+**By Shailendra Mourya (CyberShailendra)**
+Email: cybershailendra1@gmail.com
 
-## Tools Used
-- Nmap 7.99
-- Kali Linux (VMware)
 
-## How to Download Nmap
- 
-**Linux (Debian/Ubuntu/Kali):**
-```
-sudo apt update
-sudo apt install nmap -y
-```
- 
-## Environment
-- Attacker machine: `192.168.59.128` (Kali, eth0)
-- Gateway: `192.168.59.2`
-- Subnet scanned: `192.168.59.128/24`
+Getting a bug bounty report accepted is satisfying. Getting **two CVEs confirmed in one week** is even better. This post walks through how I found, verified, and responsibly disclosed two Cross-Site Scripting (XSS) vulnerabilities in open-source PHP/MySQL projects from ProjectWorlds — both now tracked as official CVEs.
 
-## Steps Performed
+## The Targets
 
-### 1. Identify local IP and subnet
-```
-ip addr
-ip route
-```
-![Local IP address](screenshort/ip-addr.png)
-![Routing table](screenshort/ip-route.png)
+Both projects are popular open-source PHP/MySQL applications commonly used by students and small institutions, which also makes them widely deployed and under-audited:
 
-Confirmed local IP `192.168.59.128/24` and default gateway `192.168.59.2`.
+| # | Project               | Vulnerability               | VulDB Entry               | CVE ID               |
+|---|---------              |--------------              -|------------              -|-------              -|
+| 1 | Online Attendance System (PHP/MySQL) v1.0 | Cross-Site Scripting | VDB-399379 | CVE-2026-86226 |
+| 2 | Online Examination System Project (PHP/MySQL) v1.0 | Cross-Site Scripting | VDB-399395 | CVE-2026-86238 |
 
-### 2. Host discovery
-```
-sudo nmap -sn 192.168.59.128/24
-```
-![Host discovery scan](screenshort/nmap-sn.png)
-**Output:**
-```
-Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:06 +0530
-Nmap scan report for 192.168.59.1
-Host is up (0.00099s latency).
-MAC Address: 00:50:56:C0:00:08 (VMware)
-Nmap scan report for 192.168.59.2
-Host is up (0.00022s latency).
-MAC Address: 00:50:56:E7:96:63 (VMware)
-Nmap scan report for 192.168.59.254
-Host is up (0.00015s latency).
-MAC Address: 00:50:56:FB:9B:54 (VMware)
-Nmap scan report for 192.168.59.128
-Host is up.
-Nmap done: 256 IP addresses (4 hosts up) scanned in 3.01 seconds
-```
-Found 4 live hosts: `.1`, `.2`, `.128`, `.254`.
+## Why These Targets
 
-### 3. TCP SYN scan
-```
-sudo nmap -sS 192.168.59.128/24
-```
-![TCP SYN scan](screenshort/nmap-sS.png)
+Student/academic PHP-MySQL projects (attendance systems, examination portals, hospital/library management systems, etc.) are a recurring source of real CVEs. They're built quickly, rarely reviewed for security, and often reused across dozens of forks and college submissions — meaning a single flaw class tends to repeat across the whole family of projects. That repetition is exactly what makes them a productive hunting ground for a researcher building up a CVE portfolio.
 
-**Output:**
-```
-Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:07 +0530
-Nmap scan report for 192.168.59.1
-Host is up (0.014s latency).
-All 1000 scanned ports on 192.168.59.1 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:C0:00:08 (VMware)
+## My Process: Recon → Verify → Disclose → Submit
 
-Nmap scan report for 192.168.59.2
-Host is up (0.00018s latency).
-Not shown: 999 closed tcp ports (reset)
-PORT   STATE SERVICE
-53/tcp open  domain
-MAC Address: 00:50:56:E7:96:63 (VMware)
+**1. Recon (Source Review)**
+Since these are open-source PHP projects available on GitHub, I didn't need to black-box test a live instance. I pulled the source and went straight to the input-handling logic — form fields, search parameters, feedback/comment sections, and any place user input gets echoed back into HTML without sanitization.
 
-Nmap scan report for 192.168.59.254
-Host is up (0.00016s latency).
-All 1000 scanned ports on 192.168.59.254 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:FB:9B:54 (VMware)
+**2. Spotting the Injection Point**
+Classic reflected/stored XSS pattern: user-controlled input (name, subject, remarks, search query, etc.) gets written directly into the page output using something like `echo $_POST['field']` or embedded straight into an HTML attribute/tag, with no `htmlspecialchars()`, no output encoding, and no input filtering.
 
-Nmap scan report for 192.168.59.128
-Host is up.
-All 1000 scanned ports on 192.168.59.128 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
+**3. Proof of Concept**
+For each finding, I crafted a minimal PoC payload to confirm script execution in the browser context — enough to demonstrate impact (session/cookie theft, defacement, phishing pivot) without weaponizing it further, in line with responsible disclosure norms.
 
-Nmap done: 256 IP addresses (4 hosts up) scanned in 210.69 seconds
-```
-Result: only `192.168.59.2` had an open port — **53/tcp (domain)**. Rest were filtered/no-response.
+**4. Documentation**
+Every submission needs to stand on its own for a third-party reviewer, so I documented:
+- Affected file(s) and exact vulnerable parameter
+- Root cause (missing output encoding / input validation)
+- Step-by-step reproduction
+- Impact statement
+- A public disclosure reference (GitHub repo) so others can verify independently
 
-### 4. Service/version detection
-```
-sudo nmap -sV -sS 192.168.59.128/24
-```
-![Service and version detection scan](screenshort/nmap-sV-sS.png)
+**5. Submission to VulDB**
+I submitted both write-ups through VulDB's submission portal. VulDB explicitly warns about backlog delays ("we receive large quantities of vulnerability reports"), so patience is part of the process — both of mine sat in review for roughly 6–7 weeks before acceptance.
 
-**Output:**
-```
-Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:11/16:13 +0530
-Nmap scan report for 192.168.59.1
-Host is up (0.0029s-0.0051s latency).
-All 1000 scanned ports on 192.168.59.1 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:C0:00:08 (VMware)
+**The Review Timeline (Straight from My Submissions Dashboard)**
+Patience really was tested here — the "My Submits" tracker showed four distinct status updates before final acceptance:
 
-Nmap scan report for 192.168.59.2
-Host is up (0.00024s-0.00025s latency).
-Not shown: 999 closed tcp ports (reset)
-PORT   STATE SERVICE VERSION
-53/tcp open  domain  dnsmasq 2.51
-MAC Address: 00:50:56:E7:96:63 (VMware)
+1. *"A very high amount of new submits is delaying processing... Current holidays might delay processing."* — the queue was simply backed up.
+2. *"We are trying to handle this submit as quickly as possible... Current holidays might delay processing."* — still in the general processing queue.
+3. *"Additional quality control in progress, please remain patient."* — the entry moved into VulDB's internal QC review.
+4. *"Asked external party again for feedback (e.g. researcher, vendor, MITRE)... please remain patient."* — VulDB looped in outside parties (potentially the vendor or MITRE) for a second opinion before finalizing.
 
-Nmap scan report for 192.168.59.254
-Host is up (0.00031s-0.00032s latency).
-All 1000 scanned ports on 192.168.59.254 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:FB:9B:54 (VMware)
+Only after this four-stage pipeline — queue → processing → QC → external feedback — did both entries land as accepted CVEs. It's a good reminder that a "submitted" report isn't a dead end; it's moving through real verification steps even when the tracker looks quiet for weeks.
 
-Nmap scan report for 192.168.59.128
-Host is up.
-All 1000 scanned ports on 192.168.59.128 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
+![My 2 CVE](screenshort/My-2-CVE.png)
 
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 256 IP addresses (4 hosts up) scanned in 217.14-217.24 seconds
-```
-Identified service on port 53 as `dnsmasq 2.51`.
+**6. Acceptance + CVE Assignment**
+Both entries came back accepted, each promoted straight to a CVE:
+- Submit #898328 → VDB-399379 → **CVE-2026-86226**
+- Submit #901822 → VDB-399395 → **CVE-2026-86238**
 
-### 5. Targeted port range scan
-```
-sudo nmap -p 1-1000 192.168.59.128/24 -T3
-```
-![Targeted port range scan](screenshort/nmap-p1-1000-T4.png)
+VulDB pushes accepted entries to the official CVE stream, which then takes up to 24 hours to reflect on cve.org and nvd.nist.gov.
 
-**Output:**
-```
-Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:29 +0530
-Nmap scan report for 192.168.59.1
-Host is up (0.010s latency).
-All 1000 scanned ports on 192.168.59.1 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:C0:00:08 (VMware)
+## Lessons for Other Researchers
 
-Nmap scan report for 192.168.59.2
-Host is up (0.00024s latency).
-Not shown: 999 closed tcp ports (reset)
-PORT   STATE SERVICE
-53/tcp open  domain
-MAC Address: 00:50:56:E7:96:63 (VMware)
+- **Open-source student projects are underrated targets.** They're realistic, legally safe to test (no live production system involved), and the vulnerability classes map directly to real-world mistakes.
+- **Documentation quality matters as much as the bug itself.** A vague report gets bounced; a report with root cause, PoC, and a public disclosure link gets accepted faster.
+- **Patience is part of the workflow.** VulDB's queue means acceptance isn't instant — track your submissions and don't resubmit duplicates while waiting.
+- **One vulnerability class, many targets.** If a codebase has one unsanitized input, check every other form/field in the same project — and check sibling projects from the same source, since these are frequently cloned/forked.
 
-Nmap scan report for 192.168.59.254
-Host is up (0.00044s latency).
-All 1000 scanned ports on 192.168.59.254 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:FB:9B:54 (VMware)
-```
-Confirmed same results with a faster timing template.
+## What's Next
 
-### 6. Final scan saved to file
-```
-nmap -sS 192.168.59.128/24 -oN scan.txt
-```
-![Scan saved to file](screenshort/nmap-sS-oN.png)
+Two more CVEs added to the researcher profile, two more real-world PHP applications a little safer for anyone still running them. The recon-to-disclosure pipeline keeps getting refined with every submission — next up is applying the same systematic review to a fresh batch of open-source PHP targets.
 
-**Output:**
-```
-Starting Nmap 7.99 ( https://nmap.org ) at 2026-08-27 16:31 +0530
-Nmap scan report for 192.168.59.1
-Host is up (0.0011s latency).
-All 1000 scanned ports on 192.168.59.1 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:C0:00:08 (VMware)
+---
 
-Nmap scan report for 192.168.59.2
-Host is up (0.00024s latency).
-Not shown: 999 closed tcp ports (reset)
-PORT   STATE SERVICE
-53/tcp open  domain
-MAC Address: 00:50:56:E7:96:63 (VMware)
+*Shailendra Mourya (CyberShailendra) is an independent security researcher and bug bounty hunter with 35+ responsible vulnerability disclosures across web and Android targets.*
 
-Nmap scan report for 192.168.59.254
-Host is up (0.00029s latency).
-All 1000 scanned ports on 192.168.59.254 are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-MAC Address: 00:50:56:FB:9B:54 (VMware)
-```
-
-### 7. External target scan 
-```
-nmap -sV -p 1-1000 -sS -oN scan.txt testaspnet.vulnweb.com
-```
-![External target scan](screenshort/nmap-sV.png)
-
-**Output (`scan.txt`):**
-```
-# Nmap 7.99 scan  initiated Thu Aug 27 16:33:47 2026 as: /usr/lib/nmap/nmap -sV -p 1-1000 -sS -oN  scan.txt testaspnet.vulnweb.com
-Nmap scan report for  testaspnet.vulnweb.com (44.238.29.244)
-Host is up (0.017s latency).
-Other addresses for  testaspnet.vulnweb.com  (not scanned):  64:ff9b::2cee:1df4
-rDNS record for 44.238.29.244: ec2-44-238-29-244.us-west-2.compute.amazonaws.com
-All 1000 scanned  ports on testaspnet.vulnweb.com (44.238.29.244) are in ignored states.
-Not shown: 1000 filtered tcp ports (no-response)
-
-Service  detection performed. Please report any incorrect results  at https://nmap.org/submit/ .
-# Nmap done at Thu Aug 27 16:34:39 2026 -- 1 IP address (1 host up) scanned in 52.17 seconds
-```
-All 1000 scanned ports were  filtered (no response) — host likely firewalled against unsolicited scans.
-
-## Results Summary
-
-| Host | Status | Open Ports | Service |
-|---|---|---|---|
-| 192.168.59.1 | Up | None (filtered) | Gateway/router |
-| 192.168.59.2 | Up | 53/tcp | dnsmasq 2.51 (DNS) |
-| 192.168.59.128 | Up | None (filtered) | Kali (self) |
-| 192.168.59.254 | Up | None (filtered) | — |
-| testaspnet.vulnweb.com | Up | None (filtered) | — |
-
-## Security Observations
-- Only one device () exposed a service — DNS (dnsmasq), commonly the VM host/DHCP server.
-- Other hosts responded to ping but showed all ports filtered, indicating a host-based firewall or restrictive network ACLs.
-- No unnecessary open ports found on the scanned subnet — low attack surface.
-
-## Files in this Repo
-- `scan.txt` — raw Nmap output
-- `screenshort/` — terminal screenshots of each scan step
-- `README.md` — this file
+**Contact:** cybershailendra.cyou
