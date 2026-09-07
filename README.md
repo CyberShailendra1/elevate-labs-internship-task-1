@@ -1,4 +1,4 @@
-### From Recon to CVE: How I Found and Reported Two XSS Vulnerabilities in ProjectWorlds PHP Projects
+# From Recon to CVE: How I Found and Reported Two XSS Vulnerabilities in ProjectWorlds PHP Projects
 
 **Author:** Shailendra Mourya (cybershailendra)
 
